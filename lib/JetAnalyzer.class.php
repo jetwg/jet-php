@@ -52,7 +52,7 @@ class Jet_Analyzer {
 
             // 执行完loader依然没有
             if (!isset(self::$depMap[$id])) {
-                $outDepObj[$id] = array('p' => $id . '.js'); // 默认模块的path就是id + .js
+                $outDepObj[$id] = array('a' => array()); // 还是要把配置加上，只是没有路径信息 也没有依赖
                 return;
             }
         }
