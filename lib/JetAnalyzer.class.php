@@ -52,6 +52,7 @@ class Jet_Analyzer {
 
             // 执行完loader依然没有
             if (!isset(self::$depMap[$id])) {
+                $outDepObj[$id] = array('p' => $id . '.js'); // 默认模块的path就是id + .js
                 return;
             }
         }
@@ -65,8 +66,8 @@ class Jet_Analyzer {
         $node = self::$depMap[$id];
 
         // 处理同步依赖
-        if (isset($node['deps']) && !empty($node['deps'])) {
-            foreach ($node['deps'] as $i => $nextid) {
+        if (isset($node['d']) && !empty($node['d'])) {
+            foreach ($node['d'] as $i => $nextid) {
                 if (!array_key_exists($nextid, $outDepObj)) {
                     self::analyzeDependency($nextid, $outDepObj);
                 }
@@ -74,8 +75,8 @@ class Jet_Analyzer {
         }
 
         // 处理异步依赖，和同步依赖一样
-        if (isset($node['asyncDeps']) && !empty($node['asyncDeps'])) {
-            foreach ($node['asyncDeps'] as $i => $nextid) {
+        if (isset($node['a']) && !empty($node['a'])) {
+            foreach ($node['a'] as $i => $nextid) {
                 if (!array_key_exists($nextid, $outDepObj)) {
                     self::analyzeDependency($nextid, $outDepObj);
                 }

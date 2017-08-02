@@ -7,7 +7,7 @@ if (!defined('JET_LIB_DIR')) {
     define('JET_LIB_DIR', dirname(__FILE__));
 }
 
-require_once(JET_LIB_DIR . DIRECTORY_SEPARATOR . 'Analyzer.php');
+require_once(JET_LIB_DIR . DIRECTORY_SEPARATOR . 'JetAnalyzer.class.php');
 
 
 /**

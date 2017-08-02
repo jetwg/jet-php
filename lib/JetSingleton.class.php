@@ -8,7 +8,7 @@ if (!defined('JET_LIB_DIR')) {
 }
 
 require_once(JET_LIB_DIR . DIRECTORY_SEPARATOR . 'Jet.class.php');
-require_once(JET_LIB_DIR . DIRECTORY_SEPARATOR . 'Analyzer.php');
+require_once(JET_LIB_DIR . DIRECTORY_SEPARATOR . 'JetAnalyzer.class.php');
 
 /**
  * Jet类封装，单实例
@@ -34,26 +34,15 @@ class Jet_Singleton {
     public static function defaultLoader($ctx)
     {
         $moduleMapDir = self::$_opt['moduleMapDir'];
-        $moduleMap = self::$_opt['moduleMap'];
         $id = $ctx['id'];
-        $confPath = '';
-        foreach ($moduleMap as $module => $path) {
-            // id以 $moduel开头
-            if (strpos($id, $module) === 0 && !empty($path)) {
-                $confPath = $path;
-                break;
-            }
-        }
-
-        if (!empty($confPath)) {
-            $sep = DIRECTORY_SEPARATOR;
-            $absPath = $moduleMapDir . "${sep}$confPath";
-            if (file_exists($absPath)) {
-                // todo: 依赖关系文件的格式需要确定，怎么和现有依赖关系合并
-                // todo: 同时新增的依赖关系文件 和 现有的依赖关系 有重名ID，怎么合并
-                $configs = require($absPath);
-                self::addDepMap($configs);
-            }
+        $idArr = explode('/', $id);
+        $idRoot = $idArr[0];
+        $absPath = $moduleMapDir . DIRECTORY_SEPARATOR . $idRoot . '.conf.php';
+        if (file_exists($absPath)) {
+            // todo: 依赖关系文件的格式需要确定，怎么和现有依赖关系合并
+            // todo: 同时新增的依赖关系文件 和 现有的依赖关系 有重名ID，怎么合并
+            $config = require($absPath);
+            self::addDepMap($config);
         }
     }
 
@@ -65,15 +54,12 @@ class Jet_Singleton {
     public static function startPage($opt = array()) {
         // todo，这个moduleMap怎么存储，存储到哪，谁来读取
         $defaultOpt = array(
-            'moduleMapDir' => JET_ROOT_DIR . DIRECTORY_SEPARATOR . 'config',
-            'moduleMap' => array()
+            'moduleMapDir' => JET_ROOT_DIR . DIRECTORY_SEPARATOR . 'config'
         );
         self::$_opt = array_merge($defaultOpt, $opt);
 
         // 有moduleMap的话，默认注册一个loader
-        if (!empty(self::$_opt['moduleMap'])) {
-            self::registerLoader('Jet_Singleton::defaultLoader');
-        }
+        self::registerLoader('Jet_Singleton::defaultLoader');
     }
 
     /**
