@@ -1,18 +1,42 @@
 <?php
 
+require_once(JET_LIB_DIR . DIRECTORY_SEPARATOR . 'JetUtil.class.php');
+
 class Jet_Analyzer {
-    private static $depMap = array();
+    private static $packInfos = array();
     private static $loaders = array();
+
+    /**
+     * getPackInfos
+     */
+    public static function getPackInfos() {
+        return self::$packInfos;
+    }
 
     /**
      * 增加一份依赖关系图，用于分析指定模块的依赖关系
      * @param $depConf {Array} 依赖关系数组
      */
-    public static function addDepMap($depConf) {
-        if (!is_array($depConf)) {
+    public static function addPackages($addPackInfos) {
+        if (!is_array($addPackInfos)) {
             return;
         }
-        self::$depMap = array_merge(self::$depMap, $depConf);
+        self::$packInfos = Jet_Util::mergePack(self::$packInfos, $addPackInfos);
+    }
+
+    /**
+     * 增加一份依赖关系图，用于分析指定模块的依赖关系
+     * @param $depConf {Array} 依赖关系数组
+     */
+    public static function loadPackages($ids) {
+        $packNames = array();
+        $lackPackNames = array();
+        foreach ($ids as $key => $id) {
+            $idPackName = explode('/', $id)[0];
+            if (!isset(self::$packInfos[$idPackName])) {
+                array_push($idPackName, $lackPackNames);
+            }
+        }
     }
 
     /**
@@ -28,15 +52,70 @@ class Jet_Analyzer {
 
     /**
      * 运行所有的loader
-     * @param $id {string} 要处理模块ID
+     * @param $ids {Array} 要处理模块ID
      */
-    public static function runLoaders($id) {
+    public static function runLoaders($ids) {
         $ctx = array(
-            'id' => $id
+            'ids' => $ids
         );
         foreach (self::$loaders as $key => $loader) {
             call_user_func($loader, $ctx);
         }
+    }
+
+    /**
+     * findId
+     * @param $id {string} 要处理模块ID
+     */
+    public static function findId($id, $packName) {
+        if (!empty($packName)) {
+            // 内部包存在
+            if (isset(self::$packInfos[$packName])) {
+                $packInfo = self::$packInfos[$packName];
+                // 模块存在，返回
+                if (isset($packInfo['map'][$id])) {
+                    return array(
+                        'modInfo' => $packInfo['map'][$id],
+                        'packName' => $packName
+                    );
+                }
+            }
+        }
+
+        // 内部包没找到，找id包
+        $packName = explode('/', $id)[0];
+        // id包存在
+        if (isset(self::$packInfos[$packName])) {
+            $packInfo = self::$packInfos[$packName];
+            // 模块存在，返回
+            if (isset($packInfo['map'][$id])) {
+                return array(
+                    'modInfo' => $packInfo['map'][$id],
+                    'packName' => $packName
+                );
+            }
+            else {
+                Jet_Util::addNotice('lackid-' . $id);
+            }
+        }
+        else {
+            Jet_Util::addNotice('lackid-' . $id);
+        }
+
+        // 都没找到，兜底
+        return array(
+            'modInfo' => array(),
+            'packName' => $packName
+        );
+    }
+
+    public static function existId($id, &$outDep) {
+        foreach ($outDep as $key => $packInfo) {
+            if (isset($packInfo['map'][$id])) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -45,55 +124,59 @@ class Jet_Analyzer {
      * @param $outDepObj {Array} 当前已找到的依赖关系，用引用方式，避免传值引用消耗
      * @return void
      */
-    public static function analyzeDependency($id, &$outDepObj) {
-        if (!isset(self::$depMap[$id])) {
-            // 执行所有的loader，去查找有该id的依赖关系表，并添加到总依赖关系表里
-            self::runLoaders($id);
+    public static function analyzeDependency($id, $thePackName, &$outDep) {
+        $res = self::findId($id, $thePackName);
+        $packName = $res['packName'];
+        $modInfo = $res['modInfo'];
 
-            // 执行完loader依然没有
-            if (!isset(self::$depMap[$id])) {
-                $outDepObj[$id] = array('a' => array()); // 还是要把配置加上，只是没有路径信息 也没有依赖
-                return;
-            }
+        // 初始化
+        if (!isset($outDep[$packName])) {
+            $outDep[$packName] = array(
+                'map' => array()
+            );
         }
 
-        // 非数组，退出，id的直接依赖是数组形式的
-        if (!is_array(self::$depMap[$id])) {
-            return;
-        }
-
-        // 获取该模块的直接依赖
-        $node = self::$depMap[$id];
+        // // 非数组，退出，id的直接依赖是数组形式的
+        // if (empty($modInfo)) {
+        //     $outDep[$packName]['map'][$id] = array();
+        //     return;
+        // }
 
         // 处理同步依赖
-        if (isset($node['d']) && !empty($node['d'])) {
-            foreach ($node['d'] as $i => $nextid) {
-                if (!array_key_exists($nextid, $outDepObj)) {
-                    self::analyzeDependency($nextid, $outDepObj);
+        if (isset($modInfo['d']) && !empty($modInfo['d'])) {
+            foreach ($modInfo['d'] as $i => $nextid) {
+                if (!self::existId($nextid, $outDep)) { // 该id还没加入依赖里
+                    Jet_Util::addLog('analyzeid', $nextid);
+                    self::analyzeDependency($nextid, $packName, $outDep);
                 }
             }
         }
 
         // 处理异步依赖，和同步依赖一样
-        if (isset($node['a']) && !empty($node['a'])) {
-            foreach ($node['a'] as $i => $nextid) {
-                if (!array_key_exists($nextid, $outDepObj)) {
-                    self::analyzeDependency($nextid, $outDepObj);
+        if (isset($modInfo['a']) && !empty($modInfo['a'])) {
+            foreach ($modInfo['a'] as $i => $nextid) {
+                if (!self::existId($nextid, $outDep)) { // 该id还没加入依赖里
+                    Jet_Util::addLog('analyzeid', $nextid);
+                    self::analyzeDependency($nextid, $packName, $outDep);
                 }
             }
         }
 
-        $outDepObj[$id] = self::$depMap[$id];
+        $outDep[$packName]['map'][$id] = $modInfo;
     }
+
 
     /**
      * 分析并获取指定模块的依赖关系
      * @param $id {string} 模块ID
      * @return {Array}
      */
-    public static function analyze($id) {
-        $outDepObj = array();
-        self::analyzeDependency($id, $outDepObj);
-        return $outDepObj;
+    public static function analyze($ids) {
+        $outDep = array();
+        foreach ($ids as $key => $id) {
+            self::analyzeDependency($id, null, $outDep);
+        }
+        Jet_Util::addLog('analyzed', implode(',', array_keys($outDep)));
+        return $outDep;
     }
 }

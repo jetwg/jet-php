@@ -43,3 +43,15 @@ var jetOpt = {
 };
 <script>
 ```
+
+
+3. 后端初始化
+```
+require_once('../jet-php/lib/JetSingleton.class.php');
+$opt = array(
+    "depHost" => "http://127.0.0.1:8111", // 仅仅后端没有ral模块时采用curl才生效，否则走ral配置，请注意
+    "logid" => LOG_ID,
+    'jetMapDir' => '/home/work/search/jet/public/jetmap',
+);
+Jet_Singleton::startPage($opt);
+```

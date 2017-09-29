@@ -7,6 +7,7 @@ if (!defined('JET_LIB_DIR')) {
     define('JET_LIB_DIR', dirname(__FILE__));
 }
 
+require_once(JET_LIB_DIR . DIRECTORY_SEPARATOR . 'JetUtil.class.php');
 require_once(JET_LIB_DIR . DIRECTORY_SEPARATOR . 'Jet.class.php');
 require_once(JET_LIB_DIR . DIRECTORY_SEPARATOR . 'JetAnalyzer.class.php');
 
@@ -23,7 +24,7 @@ class Jet_Singleton {
      */
     public static function getInstance() {
         if (is_null(self::$_instance)) {
-            self::$_instance = new Jet();
+            self::$_instance = new Jet(self::$_opt);
         }
         return self::$_instance;
     }
@@ -31,19 +32,8 @@ class Jet_Singleton {
     /**
      * 默认的loader函数，用于找到模块ID的依赖关系图，在startPage传入moduleMap配置时，才会注册该loader
      */
-    public static function defaultLoader($ctx)
-    {
-        $moduleMapDir = self::$_opt['moduleMapDir'];
-        $id = $ctx['id'];
-        $idArr = explode('/', $id);
-        $idRoot = $idArr[0];
-        $absPath = $moduleMapDir . DIRECTORY_SEPARATOR . $idRoot . '.conf.php';
-        if (file_exists($absPath)) {
-            // todo: 依赖关系文件的格式需要确定，怎么和现有依赖关系合并
-            // todo: 同时新增的依赖关系文件 和 现有的依赖关系 有重名ID，怎么合并
-            $config = require($absPath);
-            self::addDepMap($config);
-        }
+    public static function defaultLoader($ctx) {
+
     }
 
     /**
@@ -54,7 +44,15 @@ class Jet_Singleton {
     public static function startPage($opt = array()) {
         // todo，这个moduleMap怎么存储，存储到哪，谁来读取
         $defaultOpt = array(
-            'moduleMapDir' => JET_ROOT_DIR . DIRECTORY_SEPARATOR . 'config'
+            'depHost' => 'http://jet.baidu.com', // curl请求地址，不能使用外网域名，在线上机器请求不到
+            'depPath' => '/deps',
+            'requestType' => 'ral',
+            'ralName' => 'jet',
+            'logid' => '',
+            'apcCacheTime' => 10, // apc缓存时间 600 s  10min
+            'updateInterval' => 10, // 包更新的间隔 300 s  5min
+            'logid' => '',
+            'jetMapDir' => JET_ROOT_DIR . DIRECTORY_SEPARATOR . 'jetmap'
         );
         self::$_opt = array_merge($defaultOpt, $opt);
 
@@ -64,10 +62,10 @@ class Jet_Singleton {
 
     /**
      * 增加一份依赖关系图，用于分析指定模块的依赖关系
-     * @param $depConf {Array} 依赖关系数组
+     * @param $addPackInfos {Array} 依赖关系数组
      */
-    public static function addDepMap($depConf) {
-        Jet_Analyzer::addDepMap($depConf);
+    public static function addPackages($addPackInfos) {
+        Jet_Analyzer::addPackages($addPackInfos);
     }
 
     /**

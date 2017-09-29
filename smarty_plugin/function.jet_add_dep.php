@@ -4,7 +4,7 @@ if (!class_exists("Jet_Singleton", false)) {
         define('JET_ROOT_DIR', dirname(__FILE__) . DIRECTORY_SEPARATOR . '..');
     }
 
-    // atom核心库
+    // jet核心库
     require(JET_ROOT_DIR . '/lib/JetSingleton.class.php');
 }
 
