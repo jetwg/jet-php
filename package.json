@@ -1,0 +1,22 @@
+{
+  "name": "jet-php",
+  "version": "1.0.0",
+  "description": "jet php",
+  "main": "lib/JetSingleton.class.php",
+  "scripts": {
+    "build": "sh build.sh",
+    "test": "karma start karma.conf.js"
+  },
+  "keywords": [
+    "jet",
+    "php"
+  ],
+  "author": "kaivean@outlook.com",
+  "license": "MIT",
+  "dependencies": {
+
+  },
+  "devDependencies": {
+
+  }
+}
