@@ -293,7 +293,7 @@ class Jet {
             Jet_Analyzer::addPackages($loalPackInfos);
         }
         else {
-            Jet_Util::addWarning('empty local');
+            Jet_Util::addLog('empty local');
         }
         // 本地包不写入缓存
         // $this->setCache(Jet_Analyzer::getPackInfos());

@@ -1,6 +1,6 @@
 {
   "name": "jet-php",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "jet php",
   "main": "lib/JetSingleton.class.php",
   "scripts": {
