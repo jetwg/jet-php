@@ -372,8 +372,8 @@ class Jet {
      */
     public function analyze() {
         // 加载缓存, 写入到内存$packInfos
-        $cache = $this->loadCachePackages();
-
+        // $cache = $this->loadCachePackages();
+    
         // 加载本地包（第一优先级，保持和模板一致），覆盖缓存，写入缓存，写入到内存$packInfos
         $localPackInfos = $this->loadLocalPackages();
         if (!empty($localPackInfos)) {
@@ -383,13 +383,11 @@ class Jet {
             Jet_Util::addNotice('localFail');
         }
 
-        $needLoadPacks = $this->getNeedLoadPacks($this->ids, $cache, $localPackInfos);
+        // 暂时不做外部请求和缓存
+        // $needLoadPacks = $this->getNeedLoadPacks($this->ids, $cache, $localPackInfos);
 
-        // var_dump('$needLoadPacks');
-        // var_dump($needLoadPacks);
-        // var_dump($needLoadPacks);
         // 从jet加载 内存里没有的包(只会是公共包)，写入缓存, 写入到内存$packInfos
-        $this->loadRemotePackages($needLoadPacks);
+        // $this->loadRemotePackages($needLoadPacks);
 
         // 从内存$packInfos 做分析
         $outDep = Jet_Analyzer::analyze($this->ids);
@@ -428,25 +426,6 @@ class Jet {
         $startTime = microtime(true);
         $deps = $this->analyze();
         $timeSpan = round((microtime(true) - $startTime) * 1000);
-
-        if (apc_fetch('jetmap') != false) {
-            Jet_Util::addNotice('jetmap' . implode(',', array_keys(apc_fetch('jetmap'))));
-        }
-        else {
-            Jet_Util::addNotice('jetmap false');
-        }
-
-        Jet_Util::addNotice(json_encode(apc_fetch('lastLoadTime')));
-        // Jet_Util::addNotice(Jet_Util::APC_CACHE_TIME);
-        // self::addNotice(APC_CACHE_TIME);
-        Jet_Util::addNotice(json_encode(apc_fetch('loadingPackName')));
-        // var_dump(Jet_Util::flushLog());
-        // var_dump(apc_sma_info());
-        // var_dump(apc_fetch('jetmap'));
-        // var_dump(apc_fetch('lastLoadTime'));
-        // var_dump(apc_fetch('loadingPackName'));
-        // print_r(apc_cache_info());
-
 
         // 打印到日志文件里
         if (class_exists('Sm_Base_AELog')) {
